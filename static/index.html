@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediVerify — Medicine Verification</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="nav-icon">💊</span>
+    <span class="nav-title">MediVerify</span>
+  </div>
+  <div class="nav-links" id="navLinks">
+    <a href="#" onclick="showPage('home')" class="nav-link active">Home</a>
+    <a href="#" onclick="showPage('verify')" class="nav-link">Verify</a>
+    <a href="#" onclick="showPage('report')" class="nav-link">Report</a>
+    <a href="#" onclick="showPage('history')" class="nav-link">History</a>
+  </div>
+  <div class="nav-auth">
+    <span id="userBadge" class="user-badge hidden"></span>
+    <button id="authBtn" class="btn btn-outline" onclick="showPage('auth')">Login</button>
+  </div>
+</nav>
+
+<!-- PAGES -->
+<main class="main">
+
+  <!-- HOME PAGE -->
+  <div id="page-home" class="page active">
+    <section class="hero">
+      <div class="hero-content">
+        <div class="hero-badge">Trusted Medicine Verification</div>
+        <h1 class="hero-title">Is Your Medicine <span class="gradient-text">Genuine?</span></h1>
+        <p class="hero-sub">Scan barcodes or upload medicine strip images to instantly verify authenticity using AI-powered analysis.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-lg" onclick="showPage('verify')">Start Verifying</button>
+          <button class="btn btn-ghost btn-lg" onclick="showPage('auth')">Create Account</button>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-card">
+          <div class="pill-icon">💊</div>
+          <div class="scan-lines"></div>
+          <div class="status-badge genuine">✓ Genuine</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="feature-card">
+        <div class="feature-icon">📷</div>
+        <h3>Image Scan</h3>
+        <p>Upload a photo of your medicine strip. Our OCR engine extracts batch numbers, expiry dates, and manufacturer details.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>Barcode Verify</h3>
+        <p>Enter or scan a barcode/QR code to instantly cross-check against our verified medicine database.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3>Risk Scoring</h3>
+        <p>AI-powered anomaly detection flags suspicious packaging, batch mismatches, and expired medicines.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- AUTH PAGE -->
+  <div id="page-auth" class="page">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button class="auth-tab active" onclick="switchTab('login')">Login</button>
+          <button class="auth-tab" onclick="switchTab('signup')">Sign Up</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" class="auth-form" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="loginEmail" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="loginPassword" placeholder="••••••••" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Login</button>
+          <div id="loginError" class="form-error hidden"></div>
+        </form>
+
+        <!-- Signup Form -->
+        <form id="signupForm" class="auth-form hidden" onsubmit="handleSignup(event)">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="signupName" placeholder="John Doe" required />
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="signupEmail" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="signupPassword" placeholder="••••••••" required />
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="signupRole">
+              <option value="user">User</option>
+              <option value="pharmacy">Pharmacy</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+          <div id="signupError" class="form-error hidden"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERIFY PAGE -->
+  <div id="page-verify" class="page">
+    <div class="page-header">
+      <h2>Verify Medicine</h2>
+      <p>Choose a verification method below</p>
+    </div>
+
+    <div class="verify-tabs">
+      <button class="vtab active" onclick="switchVerifyTab('barcode')">🔍 Barcode / QR</button>
+      <button class="vtab" onclick="switchVerifyTab('image')">📷 Upload Image</button>
+    </div>
+
+    <!-- Barcode Tab -->
+    <div id="vtab-barcode" class="vtab-content active">
+      <div class="verify-card">
+        <form onsubmit="handleBarcodeVerify(event)">
+          <div class="form-group">
+            <label>Barcode / QR Code Value</label>
+            <input type="text" id="barcodeInput" placeholder="e.g. 8901234567890" required />
+            <span class="form-hint">Enter the barcode number printed on the medicine packaging</span>
+          </div>
+          <button type="submit" class="btn btn-primary">Verify Medicine</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Image Tab -->
+    <div id="vtab-image" class="vtab-content hidden">
+      <div class="verify-card">
+        <form onsubmit="handleImageVerify(event)">
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
+            <div class="upload-icon">📁</div>
+            <p class="upload-text">Click to upload or drag & drop</p>
+            <p class="upload-hint">JPEG, PNG, WEBP — max 10MB</p>
+            <input type="file" id="imageInput" accept="image/jpeg,image/png,image/webp" hidden onchange="previewImage(event)" />
+          </div>
+          <img id="imagePreview" class="image-preview hidden" alt="Preview" />
+          <button type="submit" class="btn btn-primary" style="margin-top:1rem">Analyze Image</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="verifyResult" class="result-card hidden"></div>
+    <div id="verifyLoader" class="loader hidden">
+      <div class="spinner"></div>
+      <p>Analyzing medicine...</p>
+    </div>
+  </div>
+
+  <!-- REPORT PAGE -->
+  <div id="page-report" class="page">
+    <div class="page-header">
+      <h2>Report Suspicious Medicine</h2>
+      <p>Help protect others by reporting counterfeit medicines</p>
+    </div>
+    <div class="form-card">
+      <form onsubmit="handleReport(event)">
+        <div class="form-group">
+          <label>Barcode (optional)</label>
+          <input type="text" id="reportBarcode" placeholder="e.g. 8901234567890" />
+        </div>
+        <div class="form-group">
+          <label>Description <span class="required">*</span></label>
+          <textarea id="reportDesc" rows="4" placeholder="Describe what looks suspicious — packaging, color, smell, etc." required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Location (optional)</label>
+          <input type="text" id="reportLocation" placeholder="e.g. Downtown Pharmacy, Main St" />
+        </div>
+        <button type="submit" class="btn btn-danger">Submit Report</button>
+        <div id="reportMsg" class="form-success hidden"></div>
+        <div id="reportError" class="form-error hidden"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div id="page-history" class="page">
+    <div class="page-header">
+      <h2>Verification History</h2>
+      <p>Your recent medicine verifications</p>
+    </div>
+    <div id="historyList" class="history-list">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>No verifications yet. Start by verifying a medicine.</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

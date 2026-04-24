@@ -1,0 +1,186 @@
+{
+  "info": {
+    "name": "Medicine Verification API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/signup",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"admin@example.com\",\"password\":\"admin123\",\"full_name\":\"Admin User\",\"role\":\"admin\"}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('token', json.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"admin@example.com\",\"password\":\"admin123\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Medicines",
+      "item": [
+        {
+          "name": "Add Medicine",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/medicines/",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Paracetamol 500mg\",\"manufacturer\":\"ABC Pharma Ltd\",\"batch_number\":\"BATCH2024A\",\"expiry_date\":\"12/2026\",\"barcode\":\"8901234567890\",\"approved_packaging\":\"White blister pack\",\"active_ingredients\":[\"Paracetamol\"],\"dosage_form\":\"tablet\"}"
+            }
+          }
+        },
+        {
+          "name": "List Medicines",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/medicines/",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verification",
+      "item": [
+        {
+          "name": "Verify by Barcode",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/verify/barcode",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "barcode", "value": "8901234567890", "type": "text" }]
+            }
+          }
+        },
+        {
+          "name": "Verify by Image",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/verify/image",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "/path/to/medicine.jpg" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Submit Report",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/reports/",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"barcode\":\"8901234567890\",\"description\":\"Packaging looks tampered.\",\"location\":\"Main St Pharmacy\"}"
+            }
+          }
+        },
+        {
+          "name": "List Reports (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/reports/",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/stats",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/users",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Verification History",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/verifications?limit=20",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pharmacy",
+      "item": [
+        {
+          "name": "Register Pharmacy",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/pharmacy/register",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"City Pharmacy\",\"license_number\":\"LIC123456\",\"address\":\"123 Main St\",\"contact_email\":\"pharmacy@example.com\",\"contact_phone\":\"+1234567890\"}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
