@@ -1,6 +1,6 @@
-# Medicine Verification API
+# MediVerify — Medicine Verification API
 
-A FastAPI backend for verifying medicine authenticity via barcode scanning and OCR image analysis.
+AI-powered FastAPI backend for detecting counterfeit medicines using barcode scanning, OCR image analysis, and Firebase Firestore.
 
 ---
 
@@ -9,37 +9,41 @@ A FastAPI backend for verifying medicine authenticity via barcode scanning and O
 ```
 medicine-verify/
 ├── app/
-│   ├── main.py               # FastAPI app entry point
-│   ├── config.py             # Settings from .env
-│   ├── dependencies.py       # JWT auth dependencies
+│   ├── main.py                  # FastAPI app entry point
+│   ├── config.py                # Settings loaded from .env
+│   ├── dependencies.py          # JWT auth dependencies
 │   ├── routers/
-│   │   ├── auth.py           # Signup / Login
-│   │   ├── medicines.py      # Medicine CRUD
-│   │   ├── verification.py   # Core verification endpoints
-│   │   ├── reports.py        # Suspicious medicine reports
-│   │   ├── admin.py          # Admin dashboard APIs
-│   │   └── pharmacy.py       # Pharmacy registration & verification
-│   ├── models/               # Pydantic schemas
+│   │   ├── auth.py              # Signup / Login
+│   │   ├── medicines.py         # Medicine CRUD
+│   │   ├── verification.py      # Core verification endpoints
+│   │   ├── reports.py           # Suspicious medicine reports
+│   │   ├── admin.py             # Admin dashboard APIs
+│   │   └── pharmacy.py          # Pharmacy registration & verification
+│   ├── models/                  # Pydantic schemas
 │   ├── services/
-│   │   ├── firebase.py       # Firestore client
-│   │   ├── ocr.py            # Tesseract OCR
-│   │   ├── barcode.py        # pyzbar barcode/QR scanning
-│   │   └── risk_engine.py    # Fake medicine risk scoring
+│   │   ├── firebase.py          # Firestore client
+│   │   ├── ocr.py               # Tesseract OCR
+│   │   ├── barcode.py           # Barcode / QR scanning
+│   │   └── risk_engine.py       # Fake medicine risk scoring
 │   └── utils/
 │       └── image_processing.py  # OpenCV preprocessing
-├── firebase-credentials.json    # ← your Firebase service account key
-├── .env
+├── static/                      # Frontend UI (HTML/CSS/JS)
+├── .env.example                 # Environment variable template
 ├── requirements.txt
+├── run.bat                      # One-click Windows launcher
 └── README.md
 ```
+
+> **Security note:** Never commit `.env` or your Firebase service account key to version control. Both are listed in `.gitignore`.
 
 ---
 
 ## Setup Instructions
 
-### 1. Clone / navigate to project
+### 1. Clone the repository
 
 ```bash
+git clone <your-repo-url>
 cd medicine-verify
 ```
 
@@ -51,7 +55,7 @@ python -m venv venv
 # Windows
 venv\Scripts\activate
 
-# macOS/Linux
+# macOS / Linux
 source venv/bin/activate
 ```
 
@@ -63,13 +67,11 @@ pip install -r requirements.txt
 
 ### 4. Install Tesseract OCR
 
-- **Windows**: Download installer from https://github.com/UB-Mannheim/tesseract/wiki
-  - Install to `C:\Program Files\Tesseract-OCR\`
-  - Set `TESSERACT_CMD=C:/Program Files/Tesseract-OCR/tesseract.exe` in `.env`
+- **Windows**: Download from https://github.com/UB-Mannheim/tesseract/wiki, install to `C:\Program Files\Tesseract-OCR\`
 - **Ubuntu/Debian**: `sudo apt install tesseract-ocr`
 - **macOS**: `brew install tesseract`
 
-### 5. Install ZBar (required by pyzbar)
+### 5. Install ZBar (for 1D barcode support)
 
 - **Windows**: Download DLLs from https://sourceforge.net/projects/zbar/ and add to PATH
 - **Ubuntu**: `sudo apt install libzbar0`
@@ -77,12 +79,11 @@ pip install -r requirements.txt
 
 ### 6. Firebase Setup
 
-1. Go to https://console.firebase.google.com
-2. Create a new project
-3. Enable **Firestore Database** (start in test mode for development)
-4. Go to Project Settings → Service Accounts → Generate new private key
-5. Save the downloaded JSON as `firebase-credentials.json` in the project root
-6. Copy your Project ID
+1. Go to https://console.firebase.google.com and create a project
+2. Enable **Firestore Database** (test mode for development)
+3. Go to Project Settings → Service Accounts → Generate new private key
+4. Save the downloaded JSON file locally — **do not commit it**
+5. Note your Project ID from Project Settings
 
 ### 7. Configure environment
 
@@ -90,25 +91,31 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env`:
-```
-FIREBASE_CREDENTIALS_PATH=firebase-credentials.json
-FIREBASE_PROJECT_ID=your-actual-project-id
-SECRET_KEY=generate-a-strong-random-key
-TESSERACT_CMD=tesseract   # or full path on Windows
+Edit `.env` with your values:
+
+```env
+FIREBASE_CREDENTIALS_PATH=path/to/your-service-account-key.json
+FIREBASE_PROJECT_ID=your-firebase-project-id
+SECRET_KEY=your-strong-random-secret-key
+TESSERACT_CMD=tesseract
 ```
 
 ### 8. Run the server
 
 ```bash
+# Windows — double-click or run:
+run.bat
+
+# Or manually:
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-API docs available at: http://localhost:8000/docs
+- API docs: http://localhost:8000/docs
+- Frontend UI: http://localhost:8000/ui
 
 ---
 
-## API Endpoints Summary
+## API Endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -129,7 +136,7 @@ API docs available at: http://localhost:8000/docs
 
 ---
 
-## Sample Test Requests
+## Sample Requests
 
 ### Signup
 ```bash
@@ -156,8 +163,6 @@ curl -X POST http://localhost:8000/medicines/ \
     "batch_number": "BATCH2024A",
     "expiry_date": "12/2026",
     "barcode": "8901234567890",
-    "approved_packaging": "White blister pack",
-    "active_ingredients": ["Paracetamol"],
     "dosage_form": "tablet"
   }'
 ```
@@ -173,19 +178,7 @@ curl -X POST http://localhost:8000/verify/barcode \
 ```bash
 curl -X POST http://localhost:8000/verify/image \
   -H "Authorization: Bearer <token>" \
-  -F "file=@/path/to/medicine_strip.jpg"
-```
-
-### Report Suspicious Medicine
-```bash
-curl -X POST http://localhost:8000/reports/ \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "barcode": "8901234567890",
-    "description": "Packaging looks different from usual. Color is off.",
-    "location": "Downtown Pharmacy, Main St"
-  }'
+  -F "file=@medicine_strip.jpg"
 ```
 
 ---
@@ -202,10 +195,21 @@ curl -X POST http://localhost:8000/reports/ \
 
 ---
 
-## Risk Score Interpretation
+## Risk Score
 
 | Score | Status | Meaning |
 |-------|--------|---------|
 | 0.0 – 0.29 | genuine | Medicine appears authentic |
-| 0.3 – 0.59 | suspicious | Anomalies detected, verify manually |
-| 0.6 – 1.0 | fake | Likely counterfeit, do not consume |
+| 0.3 – 0.59 | suspicious | Anomalies detected — verify manually |
+| 0.6 – 1.0 | fake | Likely counterfeit — do not consume |
+
+---
+
+## Tech Stack
+
+- **Backend**: FastAPI, Python 3.12
+- **Database**: Firebase Firestore
+- **OCR**: Tesseract + OpenCV
+- **Barcode**: pyzbar / OpenCV QRCodeDetector
+- **Auth**: JWT (python-jose) + bcrypt
+- **Frontend**: Vanilla HTML/CSS/JS (served via FastAPI static files)

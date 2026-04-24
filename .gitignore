@@ -1,5 +1,44 @@
+# Environment & secrets — never commit these
 .env
 firebase-credentials.json
+
+# Virtual environment
 venv/
+.venv/
+env/
+
+# Python cache
 __pycache__/
+*.py[cod]
+*.pyo
+*.pyd
 *.pyc
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Uploaded files / temp
+uploads/
+tmp/
