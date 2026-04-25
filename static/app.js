@@ -1,4 +1,4 @@
-const API = 'http://localhost:8000';
+const API = 'https://your-replit-backend.replit.app';
 let token = localStorage.getItem('token') || null;
 let currentUser = JSON.parse(localStorage.getItem('user') || 'null');
 const history = JSON.parse(localStorage.getItem('verifyHistory') || '[]');
