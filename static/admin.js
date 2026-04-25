@@ -1,4 +1,4 @@
-const API = 'http://localhost:8000';
+const API = 'https://medicine-verification-app--parastiwari264.replit.app';
 let adminToken = sessionStorage.getItem('adminToken') || null;
 let adminUser  = JSON.parse(sessionStorage.getItem('adminUser') || 'null');
 
