@@ -1,4 +1,4 @@
-const API = 'https://your-replit-backend.replit.app';
+const API = 'https://medicine-verification-app--parastiwari264.replit.app';
 let token = localStorage.getItem('token') || null;
 let currentUser = JSON.parse(localStorage.getItem('user') || 'null');
 const history = JSON.parse(localStorage.getItem('verifyHistory') || '[]');
