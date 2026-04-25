@@ -1,14 +1,21 @@
 """
-Risk scoring engine — assigns a fake medicine risk score (0.0 to 1.0)
-based on anomaly detection heuristics and database match results.
+Risk scoring engine — assigns a fake medicine risk score (0.0 to 1.0).
 
-0.0 - 0.3  → genuine
-0.3 - 0.6  → suspicious
-0.6 - 1.0  → likely fake
+Scoring breakdown:
+  No DB match found          → +0.45
+  Expiry date mismatch       → +0.25
+  Manufacturer mismatch      → +0.20
+  Medicine expired           → +0.15
+  Medicine not approved      → +0.30
+  Suspicious OCR keywords    → +0.20 each
+
+Thresholds:
+  0.00 – 0.29  → genuine
+  0.30 – 0.59  → suspicious
+  0.60 – 1.00  → fake
 """
 from datetime import datetime
 from typing import Optional
-import re
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,90 +23,104 @@ logger = logging.getLogger(__name__)
 
 def calculate_risk_score(
     db_medicine: Optional[dict],
-    ocr_fields: dict,
-    barcode_value: Optional[str],
-    ocr_text: str
+    input_fields: dict,         # fields submitted by user / extracted via OCR
+    ocr_text: str = ""
 ) -> tuple[float, list[str]]:
     """
     Returns (risk_score, flags).
-    flags = list of human-readable anomaly descriptions.
+    input_fields keys: medicine_name, batch_number, expiry_date, manufacturer
     """
     score = 0.0
     flags = []
 
-    # --- 1. No database match ---
+    # 1. No database match at all
     if db_medicine is None:
-        score += 0.4
-        flags.append("Medicine not found in verified database.")
-
+        score += 0.45
+        flags.append("Medicine not found in the verified database.")
+        # Still check expiry on the user-supplied date
+        exp = input_fields.get("expiry_date", "")
+        if exp:
+            expired, msg = _check_expiry(exp)
+            if expired:
+                score += 0.15
+                flags.append(msg)
     else:
-        # --- 2. Batch number mismatch ---
-        ocr_batch = ocr_fields.get("batch_number", "").upper().strip()
-        db_batch = db_medicine.get("batch_number", "").upper().strip()
-        if ocr_batch and db_batch and ocr_batch != db_batch:
+        # 2. Expiry date mismatch between user input and DB record
+        input_exp = _normalise(input_fields.get("expiry_date", ""))
+        db_exp    = _normalise(db_medicine.get("expiry_date", ""))
+        if input_exp and db_exp and input_exp != db_exp:
             score += 0.25
-            flags.append(f"Batch number mismatch: scanned '{ocr_batch}' vs registered '{db_batch}'.")
+            flags.append(
+                f"Expiry date mismatch: entered '{input_fields.get('expiry_date')}' "
+                f"vs registered '{db_medicine.get('expiry_date')}'."
+            )
 
-        # --- 3. Manufacturer mismatch ---
-        ocr_mfr = ocr_fields.get("manufacturer", "").lower().strip()
-        db_mfr = db_medicine.get("manufacturer", "").lower().strip()
-        if ocr_mfr and db_mfr and ocr_mfr not in db_mfr and db_mfr not in ocr_mfr:
-            score += 0.2
-            flags.append(f"Manufacturer mismatch: scanned '{ocr_mfr}' vs registered '{db_mfr}'.")
+        # 3. Manufacturer mismatch (if provided)
+        input_mfr = input_fields.get("manufacturer", "").lower().strip()
+        db_mfr    = db_medicine.get("manufacturer", "").lower().strip()
+        if input_mfr and db_mfr:
+            if input_mfr not in db_mfr and db_mfr not in input_mfr:
+                score += 0.20
+                flags.append(
+                    f"Manufacturer mismatch: entered '{input_fields.get('manufacturer')}' "
+                    f"vs registered '{db_medicine.get('manufacturer')}'."
+                )
 
-        # --- 4. Expiry date check ---
-        exp_str = ocr_fields.get("expiry_date") or db_medicine.get("expiry_date", "")
-        if exp_str:
-            expired, msg = _check_expiry(exp_str)
+        # 4. Check if the DB expiry date itself is past
+        if db_exp:
+            expired, msg = _check_expiry(db_medicine.get("expiry_date", ""))
             if expired:
                 score += 0.15
                 flags.append(msg)
 
-        # --- 5. Medicine not approved ---
+        # 5. Medicine explicitly marked not approved / recalled
         if not db_medicine.get("is_approved", True):
-            score += 0.3
+            score += 0.30
             flags.append("Medicine is marked as NOT approved in the database.")
 
-    # --- 6. OCR quality check — very short text is suspicious ---
-    if len(ocr_text.strip()) < 20:
-        score += 0.1
-        flags.append("Very little text extracted from image — packaging may be tampered.")
+        db_status = db_medicine.get("status", "approved").lower()
+        if db_status in ("banned", "recalled"):
+            score += 0.30
+            flags.append(f"Medicine status in database: '{db_status.upper()}'.")
 
-    # --- 7. Suspicious keywords in OCR text ---
+    # 6. Suspicious keywords in OCR text (image scan path)
     suspicious_keywords = ["replica", "copy", "imitation", "not for sale", "sample only"]
     for kw in suspicious_keywords:
         if kw in ocr_text.lower():
-            score += 0.2
-            flags.append(f"Suspicious keyword detected in label: '{kw}'.")
+            score += 0.20
+            flags.append(f"Suspicious keyword detected on label: '{kw}'.")
 
-    # Clamp to [0.0, 1.0]
-    score = min(round(score, 2), 1.0)
-    return score, flags
+    return min(round(score, 2), 1.0), flags
 
 
 def score_to_status(score: float) -> str:
-    if score < 0.3:
+    if score < 0.30:
         return "genuine"
-    elif score < 0.6:
+    elif score < 0.60:
         return "suspicious"
     else:
         return "fake"
 
 
+# ── Helpers ───────────────────────────────────────────────────
+
+def _normalise(exp_str: str) -> str:
+    """Normalise MM/YYYY or MM-YYYY to MM/YYYY for comparison."""
+    return exp_str.strip().replace("-", "/")
+
+
 def _check_expiry(exp_str: str) -> tuple[bool, str]:
-    """Parse MM/YYYY or MM/YY and check if expired."""
+    """Return (is_expired, message). Accepts MM/YYYY or MM-YYYY."""
     try:
-        # Normalize separators
-        exp_str = exp_str.replace("-", "/")
+        exp_str = _normalise(exp_str)
         parts = exp_str.split("/")
         if len(parts) == 2:
             month = int(parts[0])
-            year = int(parts[1])
+            year  = int(parts[1])
             if year < 100:
                 year += 2000
-            exp_date = datetime(year, month, 1)
-            if exp_date < datetime.now():
-                return True, f"Medicine expired: {exp_str}."
+            if datetime(year, month, 1) < datetime.now():
+                return True, f"Medicine has expired (expiry: {exp_str})."
     except Exception as e:
         logger.warning(f"Could not parse expiry date '{exp_str}': {e}")
     return False, ""

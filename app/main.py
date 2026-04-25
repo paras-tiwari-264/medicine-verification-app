@@ -70,3 +70,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/ui", tags=["UI"])
 async def serve_ui():
     return FileResponse("static/index.html")
+
+
+@app.get("/admin", tags=["UI"])
+async def serve_admin():
+    return FileResponse("static/admin.html")

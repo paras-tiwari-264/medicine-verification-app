@@ -23,6 +23,7 @@ async def add_medicine(
     doc = {
         "id": mid,
         **data.model_dump(),
+        "batch_number": data.batch_number.strip().upper(),  # normalise on insert
         "is_approved": True,
         "created_at": datetime.utcnow().isoformat(),
     }

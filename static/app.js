@@ -27,12 +27,15 @@ function switchTab(tab) {
 }
 
 // ── VERIFY TABS ───────────────────────────────────────────────
-function switchVerifyTab(tab) {
-  document.querySelectorAll('.vtab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.vtab-content').forEach(c => c.classList.add('hidden'));
-  document.getElementById(`vtab-${tab}`).classList.remove('hidden');
-  event.target.classList.add('active');
+function switchVerifyTab(tab, btn) {
+  document.querySelectorAll('.vtab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.vpanel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`vtab-${tab}`).classList.add('active');
   document.getElementById('verifyResult').classList.add('hidden');
+  document.getElementById('verifyLoader').classList.add('hidden');
+  document.getElementById('batchFormError').classList.add('hidden');
+  document.getElementById('imageFormError').classList.add('hidden');
 }
 
 // ── AUTH ──────────────────────────────────────────────────────
@@ -83,15 +86,19 @@ function saveAuth(res) {
 }
 
 function updateNavAuth() {
-  const badge = document.getElementById('userBadge');
-  const btn = document.getElementById('authBtn');
+  const badge     = document.getElementById('userBadge');
+  const btn       = document.getElementById('authBtn');
+  const adminLink = document.getElementById('adminLink');
   if (currentUser) {
     badge.textContent = `${currentUser.full_name} (${currentUser.role})`;
     badge.classList.remove('hidden');
     btn.textContent = 'Logout';
     btn.onclick = logout;
+    if (currentUser.role === 'admin') adminLink.classList.remove('hidden');
+    else adminLink.classList.add('hidden');
   } else {
     badge.classList.add('hidden');
+    adminLink.classList.add('hidden');
     btn.textContent = 'Login';
     btn.onclick = () => showPage('auth');
   }
@@ -107,18 +114,40 @@ function logout() {
 }
 
 // ── VERIFICATION ──────────────────────────────────────────────
-async function handleBarcodeVerify(e) {
+async function handleBatchVerify(e) {
   e.preventDefault();
-  const barcode = document.getElementById('barcodeInput').value.trim();
+  const errEl = document.getElementById('batchFormError');
+  errEl.classList.add('hidden');
+
+  const name    = document.getElementById('vMedicineName').value.trim();
+  const batch   = document.getElementById('vBatchNumber').value.trim();
+  const expiry  = document.getElementById('vExpiryDate').value.trim();
+  const mfr     = document.getElementById('vManufacturer').value.trim();
+
+  if (!name || !batch || !expiry) {
+    errEl.textContent = 'Please fill in all required fields.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (!/^(0[1-9]|1[0-2])\/\d{4}$/.test(expiry)) {
+    errEl.textContent = 'Expiry date must be in MM/YYYY format (e.g. 06/2027).';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
   showLoader(true);
   try {
-    const form = new FormData();
-    form.append('barcode', barcode);
-    const res = await apiFetch('POST', '/verify/barcode', form, true);
+    const res = await api('POST', '/verify/batch', {
+      medicine_name: name,
+      batch_number:  batch,
+      expiry_date:   expiry,
+      manufacturer:  mfr || null,
+    });
     showResult(res);
     saveHistory(res);
   } catch (err) {
-    showToast(err.message, 'error');
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
   } finally {
     showLoader(false);
   }
@@ -126,47 +155,121 @@ async function handleBarcodeVerify(e) {
 
 async function handleImageVerify(e) {
   e.preventDefault();
+  const errEl = document.getElementById('imageFormError');
+  errEl.classList.add('hidden');
+
   const file = document.getElementById('imageInput').files[0];
-  if (!file) { showToast('Please select an image.'); return; }
+  if (!file) {
+    errEl.textContent = 'Please select a medicine strip image to scan.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
   showLoader(true);
   try {
     const form = new FormData();
     form.append('file', file);
-    const res = await apiFetch('POST', '/verify/image', form, true);
+    const res = await apiFetch('POST', '/verify/image', form);
+
+    // Show OCR text if extracted
+    if (res.ocr_text && res.ocr_text.trim()) {
+      document.getElementById('ocrText').textContent = res.ocr_text;
+      document.getElementById('ocrPreview').classList.remove('hidden');
+    }
+
     showResult(res);
     saveHistory(res);
   } catch (err) {
-    showToast(err.message, 'error');
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
   } finally {
     showLoader(false);
   }
 }
 
+// ── IMAGE SELECTION ───────────────────────────────────────────
+function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (file) showImagePreview(file);
+}
+
+function showImagePreview(file) {
+  document.getElementById('imagePreview').src = URL.createObjectURL(file);
+  document.getElementById('imageFileName').textContent = file.name;
+  document.getElementById('imagePreviewWrap').classList.remove('hidden');
+  document.getElementById('uploadZone').style.display = 'none';
+  document.getElementById('ocrPreview').classList.add('hidden');
+  document.getElementById('imageFormError').classList.add('hidden');
+}
+
+function removeImage() {
+  document.getElementById('imageInput').value = '';
+  document.getElementById('imagePreviewWrap').classList.add('hidden');
+  document.getElementById('uploadZone').style.display = '';
+  document.getElementById('ocrPreview').classList.add('hidden');
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.add('drag-over');
+}
+function handleDragLeave() {
+  document.getElementById('uploadZone').classList.remove('drag-over');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+    showToast('Only JPEG, PNG, or WEBP images accepted.');
+    return;
+  }
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  document.getElementById('imageInput').files = dt.files;
+  showImagePreview(file);
+}
+
 function showResult(r) {
   const el = document.getElementById('verifyResult');
-  const icons = { genuine: '✅', suspicious: '⚠️', fake: '🚨', unknown: '❓' };
+  const icons   = { genuine: '✅', suspicious: '⚠️', fake: '🚨', unknown: '❓' };
+  const colors  = { genuine: 'var(--success)', suspicious: 'var(--warning)', fake: 'var(--danger)', unknown: 'var(--text2)' };
   const scorePercent = Math.round(r.risk_score * 100);
 
   const flagsHtml = r.flags?.length
     ? `<div class="result-flags">
         <div class="result-flags-title">⚠ Anomalies Detected</div>
-        ${r.flags.map(f => `<div class="flag-item">⚠ ${f}</div>`).join('')}
-       </div>`
-    : '';
+        ${r.flags.map(f => `<div class="flag-item"><span>⚠</span><span>${f}</span></div>`).join('')}
+       </div>` : '';
 
   const ocrHtml = r.ocr_text
     ? `<div class="result-field" style="grid-column:1/-1">
         <div class="result-field-label">OCR Extracted Text</div>
-        <div class="result-field-value" style="font-size:.8rem;font-weight:400;white-space:pre-wrap;max-height:100px;overflow:auto">${r.ocr_text}</div>
-       </div>`
-    : '';
+        <div class="result-field-value" style="font-size:.78rem;font-weight:400;white-space:pre-wrap;max-height:90px;overflow:auto;font-family:monospace">${r.ocr_text}</div>
+       </div>` : '';
+
+  const packagingHtml = r.approved_packaging
+    ? `<div class="result-field">
+        <div class="result-field-label">Approved Packaging</div>
+        <div class="result-field-value">${r.approved_packaging}</div>
+       </div>` : '';
+
+  const compositionHtml = r.composition
+    ? `<div class="result-field" style="grid-column:1/-1">
+        <div class="result-field-label">Composition</div>
+        <div class="result-field-value">${r.composition}</div>
+       </div>` : '';
 
   el.innerHTML = `
     <div class="result-header">
       <div class="result-status-icon">${icons[r.status] || '❓'}</div>
-      <div>
-        <div class="result-title">${capitalize(r.status)}</div>
-        <div class="result-score">Risk Score: ${scorePercent}% ${riskBar(scorePercent)}</div>
+      <div style="flex:1">
+        <div class="result-title" style="color:${colors[r.status]}">${capitalize(r.status)}</div>
+        <div class="result-score">
+          Risk Score: <strong style="color:${colors[r.status]}">${scorePercent}%</strong>
+          ${riskBar(scorePercent)}
+        </div>
       </div>
     </div>
     <div class="result-grid">
@@ -187,9 +290,11 @@ function showResult(r) {
         <div class="result-field-value">${r.expiry_date || '—'}</div>
       </div>
       <div class="result-field">
-        <div class="result-field-label">Barcode</div>
-        <div class="result-field-value">${r.barcode_value || '—'}</div>
+        <div class="result-field-label">Mfg. Date</div>
+        <div class="result-field-value">${r.manufacturing_date || '—'}</div>
       </div>
+      ${packagingHtml}
+      ${compositionHtml}
       ${ocrHtml}
     </div>
     ${flagsHtml}
@@ -201,8 +306,10 @@ function showResult(r) {
 
 function riskBar(pct) {
   const color = pct < 30 ? '#22c55e' : pct < 60 ? '#f59e0b' : '#ef4444';
-  return `<span style="display:inline-block;width:80px;height:6px;background:#2a3347;border-radius:3px;vertical-align:middle;margin-left:6px">
-    <span style="display:block;width:${pct}%;height:100%;background:${color};border-radius:3px"></span>
+  return `<span style="display:inline-flex;align-items:center;gap:4px;vertical-align:middle;margin-left:4px">
+    <span style="display:inline-block;width:90px;height:7px;background:#2a3347;border-radius:4px;overflow:hidden">
+      <span style="display:block;width:${pct}%;height:100%;background:${color};border-radius:4px;transition:width .4s"></span>
+    </span>
   </span>`;
 }
 
@@ -215,7 +322,7 @@ async function handleReport(e) {
   errEl.classList.add('hidden');
   try {
     await api('POST', '/reports/', {
-      barcode: document.getElementById('reportBarcode').value || null,
+      batch_number: document.getElementById('reportBatch').value || null,
       description: document.getElementById('reportDesc').value,
       location: document.getElementById('reportLocation').value || null,
     });
@@ -250,7 +357,7 @@ function renderHistory() {
       <div class="history-item-left">
         <div class="history-item-icon">${icons[h.status] || '❓'}</div>
         <div>
-          <div class="history-item-name">${h.medicine_name || h.barcode_value || 'Unknown Medicine'}</div>
+          <div class="history-item-name">${h.medicine_name || h.batch_number || 'Unknown Medicine'}</div>
           <div class="history-item-meta">${h._ts} · Batch: ${h.batch_number || '—'}</div>
         </div>
       </div>
@@ -261,15 +368,6 @@ function renderHistory() {
       </div>
     </div>
   `).join('');
-}
-
-// ── IMAGE PREVIEW ─────────────────────────────────────────────
-function previewImage(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const preview = document.getElementById('imagePreview');
-  preview.src = URL.createObjectURL(file);
-  preview.classList.remove('hidden');
 }
 
 // ── API HELPERS ───────────────────────────────────────────────

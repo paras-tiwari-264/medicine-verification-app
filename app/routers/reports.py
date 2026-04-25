@@ -23,7 +23,7 @@ async def submit_report(
         "id": rid,
         "reporter_uid": current_user["uid"],
         "medicine_id": data.medicine_id,
-        "barcode": data.barcode,
+        "batch_number": data.batch_number,
         "description": data.description,
         "location": data.location,
         "status": "pending",

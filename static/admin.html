@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediVerify — Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/admin.css" />
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══════════════════════════════════════════ -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">🛡️</div>
+      <div class="login-logo-text">
+        <span class="login-logo-title">MediVerify</span>
+        <span class="login-logo-sub">Admin Console</span>
+      </div>
+    </div>
+    <div class="login-divider"></div>
+    <h2 class="login-heading">Secure Admin Access</h2>
+    <p class="login-sub">Sign in with your administrator credentials</p>
+    <form id="adminLoginForm" onsubmit="handleAdminLogin(event)" novalidate>
+      <div class="aform-group">
+        <label>Admin Email</label>
+        <div class="aform-input-wrap">
+          <svg class="aform-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <input type="email" id="adminEmail" placeholder="admin@medverify.com" required autocomplete="off" />
+        </div>
+      </div>
+      <div class="aform-group">
+        <label>Password</label>
+        <div class="aform-input-wrap">
+          <svg class="aform-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <input type="password" id="adminPassword" placeholder="••••••••••" required />
+        </div>
+      </div>
+      <div id="loginError" class="aerror hidden"></div>
+      <button type="submit" class="login-btn" id="loginBtn">
+        <span id="loginBtnText">Sign In to Admin Panel</span>
+        <div id="loginSpinner" class="btn-spinner hidden"></div>
+      </button>
+    </form>
+    <a href="/ui" class="login-back">← Back to main app</a>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ════════════════════════════════════════════ -->
+<div id="dashboard" class="dashboard hidden">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🛡️</div>
+      <div>
+        <div class="sidebar-brand-title">MediVerify</div>
+        <div class="sidebar-brand-sub">Admin Console</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Main</div>
+      <a class="sidebar-link active" data-section="overview" onclick="showSection('overview', this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a class="sidebar-link" data-section="medicines" onclick="showSection('medicines', this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z"/></svg>
+        Medicines
+      </a>
+      <a class="sidebar-link" data-section="reports" onclick="showSection('reports', this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Reports
+        <span class="sidebar-badge" id="pendingBadge">0</span>
+      </a>
+      <a class="sidebar-link" data-section="users" onclick="showSection('users', this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Users
+      </a>
+      <a class="sidebar-link" data-section="pharmacies" onclick="showSection('pharmacies', this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Pharmacies
+      </a>
+      <a class="sidebar-link" data-section="verifications" onclick="showSection('verifications', this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Activity
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user" id="sidebarUser"></div>
+      <button class="sidebar-logout" onclick="adminLogout()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="dash-main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" onclick="toggleSidebar()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <h1 class="topbar-title" id="topbarTitle">Dashboard</h1>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-badge">Admin</span>
+        <span class="topbar-name" id="topbarName"></span>
+      </div>
+    </header>
+
+    <!-- Sections -->
+    <div class="dash-content">
+
+      <!-- ── OVERVIEW ── -->
+      <section id="section-overview" class="dsection active">
+        <div class="stat-grid" id="statGrid">
+          <div class="stat-card">
+            <div class="stat-icon blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z"/></svg></div>
+            <div class="stat-info"><div class="stat-value" id="statMedicines">—</div><div class="stat-label">Medicines</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+            <div class="stat-info"><div class="stat-value" id="statUsers">—</div><div class="stat-label">Users</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <div class="stat-info"><div class="stat-value" id="statVerifications">—</div><div class="stat-label">Verifications</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+            <div class="stat-info"><div class="stat-value" id="statReports">—</div><div class="stat-label">Reports</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            <div class="stat-info"><div class="stat-value" id="statPending">—</div><div class="stat-label">Pending Reports</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon teal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
+            <div class="stat-info"><div class="stat-value" id="statPharmacies">—</div><div class="stat-label">Pharmacies</div></div>
+          </div>
+        </div>
+
+        <div class="dash-row">
+          <div class="dash-panel">
+            <div class="panel-header"><span class="panel-title">Recent Reports</span><button class="panel-link" onclick="showSection('reports', document.querySelector('[data-section=reports]'))">View all →</button></div>
+            <div id="recentReports" class="panel-list"></div>
+          </div>
+          <div class="dash-panel">
+            <div class="panel-header"><span class="panel-title">Recent Activity</span><button class="panel-link" onclick="showSection('verifications', document.querySelector('[data-section=verifications]'))">View all →</button></div>
+            <div id="recentActivity" class="panel-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── MEDICINES ── -->
+      <section id="section-medicines" class="dsection">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Medicine Database</h2>
+            <p class="section-sub">Manage verified medicine records</p>
+          </div>
+          <button class="action-btn" onclick="openMedicineModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Medicine
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table class="dtable">
+            <thead><tr><th>Name</th><th>Manufacturer</th><th>Batch</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="medicinesTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── REPORTS ── -->
+      <section id="section-reports" class="dsection">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Suspicious Reports</h2>
+            <p class="section-sub">Review and manage user-submitted reports</p>
+          </div>
+          <div class="filter-group">
+            <select id="reportFilter" onchange="loadReports()" class="filter-select">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="resolved">Resolved</option>
+              <option value="dismissed">Dismissed</option>
+            </select>
+          </div>
+        </div>
+        <div id="reportsList" class="reports-list"></div>
+      </section>
+
+      <!-- ── USERS ── -->
+      <section id="section-users" class="dsection">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">User Management</h2>
+            <p class="section-sub">View and manage registered users</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="dtable">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody id="usersTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── PHARMACIES ── -->
+      <section id="section-pharmacies" class="dsection">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Pharmacy Management</h2>
+            <p class="section-sub">Verify and manage registered pharmacies</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="dtable">
+            <thead><tr><th>Name</th><th>License</th><th>Address</th><th>Contact</th><th>Verified</th><th>Actions</th></tr></thead>
+            <tbody id="pharmaciesTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── VERIFICATIONS ── -->
+      <section id="section-verifications" class="dsection">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Verification Activity</h2>
+            <p class="section-sub">Recent medicine verification events</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="dtable">
+            <thead><tr><th>Medicine</th><th>Batch</th><th>Status</th><th>Risk</th><th>Time</th></tr></thead>
+            <tbody id="verificationsTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div><!-- dash-content -->
+  </div><!-- dash-main -->
+</div><!-- dashboard -->
+
+<!-- ══ MEDICINE MODAL ════════════════════════════════════════ -->
+<div id="medicineModal" class="modal-overlay hidden" onclick="closeMedicineModal(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add Medicine</h3>
+      <button class="modal-close" onclick="closeMedicineModal()">✕</button>
+    </div>
+    <form id="medicineForm" onsubmit="saveMedicine(event)" novalidate>
+      <input type="hidden" id="medicineId" />
+      <div class="modal-grid">
+        <div class="aform-group">
+          <label>Medicine Name <span class="req">*</span></label>
+          <input type="text" id="mName" placeholder="e.g. Paracetamol 500mg" required />
+        </div>
+        <div class="aform-group">
+          <label>Manufacturer <span class="req">*</span></label>
+          <input type="text" id="mManufacturer" placeholder="e.g. ABC Pharma Ltd" required />
+        </div>
+        <div class="aform-group">
+          <label>Batch Number <span class="req">*</span></label>
+          <input type="text" id="mBatch" placeholder="e.g. BATCH2024A" required />
+        </div>
+        <div class="aform-group">
+          <label>Expiry Date <span class="req">*</span></label>
+          <input type="text" id="mExpiry" placeholder="MM/YYYY" required />
+        </div>
+        <div class="aform-group">
+          <label>Manufacturing Date</label>
+          <input type="text" id="mMfgDate" placeholder="MM/YYYY" />
+        </div>
+        <div class="aform-group">
+          <label>Dosage Form</label>
+          <select id="mDosage">
+            <option value="">Select...</option>
+            <option>tablet</option><option>capsule</option><option>syrup</option>
+            <option>injection</option><option>cream</option><option>drops</option>
+          </select>
+        </div>
+        <div class="aform-group" style="grid-column:1/-1">
+          <label>Composition</label>
+          <input type="text" id="mComposition" placeholder="e.g. Paracetamol 500mg, Caffeine 65mg" />
+        </div>
+        <div class="aform-group" style="grid-column:1/-1">
+          <label>Approved Packaging</label>
+          <input type="text" id="mPackaging" placeholder="e.g. White blister pack, 10 tablets" />
+        </div>
+        <div class="aform-group">
+          <label>Status</label>
+          <select id="mStatus">
+            <option value="approved">Approved</option>
+            <option value="banned">Banned</option>
+            <option value="recalled">Recalled</option>
+          </select>
+        </div>
+      </div>
+      <div id="modalError" class="aerror hidden"></div>
+      <div class="modal-actions">
+        <button type="button" class="modal-cancel" onclick="closeMedicineModal()">Cancel</button>
+        <button type="submit" class="action-btn" id="modalSaveBtn">Save Medicine</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ CONFIRM MODAL ════════════════════════════════════════ -->
+<div id="confirmModal" class="modal-overlay hidden" onclick="closeConfirm()">
+  <div class="modal-card confirm-card" onclick="event.stopPropagation()">
+    <div class="confirm-icon">⚠️</div>
+    <h3 id="confirmTitle">Confirm Action</h3>
+    <p id="confirmMsg" class="confirm-msg"></p>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="action-btn danger-btn" id="confirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="adminToast" class="admin-toast hidden"></div>
+
+<script src="/static/admin.js"></script>
+</body>
+</html>

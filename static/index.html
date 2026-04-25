@@ -24,6 +24,7 @@
   </div>
   <div class="nav-auth">
     <span id="userBadge" class="user-badge hidden"></span>
+    <a id="adminLink" class="btn btn-outline hidden" href="/admin" target="_blank" style="font-size:.82rem;padding:.4rem .9rem">🛡️ Admin</a>
     <button id="authBtn" class="btn btn-outline" onclick="showPage('auth')">Login</button>
   </div>
 </nav>
@@ -124,52 +125,140 @@
 
   <!-- VERIFY PAGE -->
   <div id="page-verify" class="page">
-    <div class="page-header">
-      <h2>Verify Medicine</h2>
-      <p>Choose a verification method below</p>
+
+    <div class="vpage-header">
+      <h2 class="vpage-title">Verify Medicine</h2>
+      <p class="vpage-sub">Select a method to check medicine authenticity</p>
     </div>
 
-    <div class="verify-tabs">
-      <button class="vtab active" onclick="switchVerifyTab('barcode')">🔍 Barcode / QR</button>
-      <button class="vtab" onclick="switchVerifyTab('image')">📷 Upload Image</button>
+    <!-- Tab buttons -->
+    <div class="vtab-bar">
+      <button class="vtab-btn active" id="vbtn-batch" onclick="switchVerifyTab('batch', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Batch Number
+      </button>
+      <button class="vtab-btn" id="vbtn-image" onclick="switchVerifyTab('image', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Upload Image
+      </button>
     </div>
 
-    <!-- Barcode Tab -->
-    <div id="vtab-barcode" class="vtab-content active">
-      <div class="verify-card">
-        <form onsubmit="handleBarcodeVerify(event)">
-          <div class="form-group">
-            <label>Barcode / QR Code Value</label>
-            <input type="text" id="barcodeInput" placeholder="e.g. 8901234567890" required />
-            <span class="form-hint">Enter the barcode number printed on the medicine packaging</span>
+    <!-- Batch Number Panel -->
+    <div id="vtab-batch" class="vpanel active">
+      <div class="vpanel-card">
+
+        <div class="vpanel-card-header">
+          <div class="vpanel-card-icon batch-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
           </div>
-          <button type="submit" class="btn btn-primary">Verify Medicine</button>
+          <div>
+            <div class="vpanel-card-title">Batch Number Verification</div>
+            <div class="vpanel-card-sub">Enter medicine details to verify authenticity</div>
+          </div>
+        </div>
+
+        <form id="batchVerifyForm" onsubmit="handleBatchVerify(event)" novalidate>
+          <div class="vform-row">
+            <div class="form-group">
+              <label>Medicine Name <span class="required">*</span></label>
+              <input type="text" id="vMedicineName" placeholder="e.g. Paracetamol 500mg" required autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label>Batch Number <span class="required">*</span></label>
+              <input type="text" id="vBatchNumber" placeholder="e.g. BATCH2024A" required autocomplete="off" />
+              <span class="form-hint">Printed on the strip or box label</span>
+            </div>
+          </div>
+          <div class="vform-row">
+            <div class="form-group">
+              <label>Expiry Date <span class="required">*</span></label>
+              <input type="text" id="vExpiryDate" placeholder="MM/YYYY" required
+                pattern="^(0[1-9]|1[0-2])\/\d{4}$" title="Format: MM/YYYY" autocomplete="off" />
+              <span class="form-hint">e.g. 06/2027</span>
+            </div>
+            <div class="form-group">
+              <label>Manufacturer <span class="optional-label">(optional)</span></label>
+              <input type="text" id="vManufacturer" placeholder="e.g. ABC Pharma Ltd" autocomplete="off" />
+              <span class="form-hint">Improves accuracy</span>
+            </div>
+          </div>
+          <div id="batchFormError" class="form-error hidden"></div>
+          <button type="submit" class="vsubmit-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Verify Medicine
+          </button>
         </form>
       </div>
     </div>
 
-    <!-- Image Tab -->
-    <div id="vtab-image" class="vtab-content hidden">
-      <div class="verify-card">
-        <form onsubmit="handleImageVerify(event)">
-          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
-            <div class="upload-icon">📁</div>
-            <p class="upload-text">Click to upload or drag & drop</p>
-            <p class="upload-hint">JPEG, PNG, WEBP — max 10MB</p>
-            <input type="file" id="imageInput" accept="image/jpeg,image/png,image/webp" hidden onchange="previewImage(event)" />
+    <!-- Image Scan Panel -->
+    <div id="vtab-image" class="vpanel">
+      <div class="vpanel-card">
+
+        <div class="vpanel-card-header">
+          <div class="vpanel-card-icon image-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           </div>
-          <img id="imagePreview" class="image-preview hidden" alt="Preview" />
-          <button type="submit" class="btn btn-primary" style="margin-top:1rem">Analyze Image</button>
+          <div>
+            <div class="vpanel-card-title">Image Scan Verification</div>
+            <div class="vpanel-card-sub">Upload a medicine strip photo for OCR analysis</div>
+          </div>
+        </div>
+
+        <form id="imageVerifyForm" onsubmit="handleImageVerify(event)" novalidate>
+          <div class="upload-zone" id="uploadZone"
+               onclick="document.getElementById('imageInput').click()"
+               ondragover="handleDragOver(event)"
+               ondragleave="handleDragLeave(event)"
+               ondrop="handleDrop(event)">
+            <div class="upload-zone-body">
+              <div class="upload-zone-circle">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+              </div>
+              <p class="upload-zone-title">Drop your image here</p>
+              <p class="upload-zone-sub">or click to browse — JPEG · PNG · WEBP · max 10MB</p>
+              <button type="button" class="upload-browse-btn"
+                      onclick="event.stopPropagation(); document.getElementById('imageInput').click()">
+                Choose File
+              </button>
+            </div>
+            <input type="file" id="imageInput" accept="image/jpeg,image/png,image/webp"
+                   hidden onchange="handleImageSelect(event)" />
+          </div>
+
+          <div id="imagePreviewWrap" class="image-preview-wrap hidden">
+            <img id="imagePreview" class="image-preview-img" alt="Preview" />
+            <div class="image-preview-bar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span id="imageFileName" class="image-file-name"></span>
+              <button type="button" class="btn-remove-image" onclick="removeImage()">✕ Remove</button>
+            </div>
+          </div>
+
+          <div id="ocrPreview" class="ocr-preview hidden">
+            <div class="ocr-preview-header">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="ocr-preview-title">OCR Extracted Text</span>
+            </div>
+            <pre id="ocrText" class="ocr-text"></pre>
+          </div>
+
+          <div id="imageFormError" class="form-error hidden"></div>
+          <button type="submit" class="vsubmit-btn" style="margin-top:1.25rem">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Scan & Verify
+          </button>
         </form>
       </div>
     </div>
 
-    <!-- Result -->
-    <div id="verifyResult" class="result-card hidden"></div>
+    <!-- Loader + Result -->
     <div id="verifyLoader" class="loader hidden">
       <div class="spinner"></div>
       <p>Analyzing medicine...</p>
     </div>
+    <div id="verifyResult" class="result-card hidden"></div>
+
   </div>
 
   <!-- REPORT PAGE -->
@@ -181,8 +270,8 @@
     <div class="form-card">
       <form onsubmit="handleReport(event)">
         <div class="form-group">
-          <label>Barcode (optional)</label>
-          <input type="text" id="reportBarcode" placeholder="e.g. 8901234567890" />
+          <label>Batch Number (optional)</label>
+          <input type="text" id="reportBatch" placeholder="e.g. BATCH2024A" />
         </div>
         <div class="form-group">
           <label>Description <span class="required">*</span></label>
